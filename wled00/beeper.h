@@ -2,7 +2,11 @@
 #define __BEEPER_H
 
 #include "inttypes.h"
-#include "esp32-hal-ledc.h"
+
+#ifndef ESP8266
+    #include "esp32-hal-ledc.h"
+#endif
+
 #include "timer.h"
 
 class Beeper {

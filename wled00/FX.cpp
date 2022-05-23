@@ -3949,7 +3949,7 @@ uint16_t WS2812FX::mode_blends(void) {
 #define _2SX_RMAX 3
 
 float _2sofix_random_float(float min, float max) {
-  return min + (esp_random() / (float) UINT32_MAX) * (max - min);
+  return min + (random16(UINT16_MAX) / (float) UINT16_MAX) * (max - min);
 }
 
 float _2sofix_velocity(uint8_t speed) {

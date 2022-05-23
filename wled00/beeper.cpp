@@ -3,12 +3,16 @@
 static uint16_t singleBeep[3];
 
 Beeper::Beeper(uint8_t channel, uint8_t pin) : _channel(channel), _beep_timer(0) {
-    ledcAttachPin(pin, channel);
+    #ifndef ESP8266
+        ledcAttachPin(pin, channel);
+    #endif
 }
 
 void Beeper::beep(uint16_t frequency, uint16_t duration) {
     if (duration == 0) {
-        ledcWriteTone(_channel, frequency);
+        #ifndef ESP8266
+            ledcWriteTone(_channel, frequency);
+        #endif
     } else {
         singleBeep[0] = 1;
         singleBeep[1] = frequency;
@@ -24,7 +28,9 @@ void Beeper::play(uint16_t* beep) {
 }
 
 void Beeper::mute() {
-    ledcWriteTone(_channel, 0);
+    #ifndef ESP8266
+        ledcWriteTone(_channel, 0);
+    #endif
     _current_beep = 0;
 }
 
@@ -38,10 +44,14 @@ void Beeper::update() {
         uint16_t f = _current_beep[1 + n];
         uint16_t t = _current_beep[2 + n];
         _beep_timer.reset(t);
-        ledcWriteTone(_channel, f);
+        #ifndef ESP8266
+            ledcWriteTone(_channel, f);
+        #endif
         _current_note++;
     } else {
-        ledcWriteTone(_channel, 0);
+        #ifndef ESP8266
+            ledcWriteTone(_channel, 0);
+        #endif
         _current_beep = 0;
     }
 }
