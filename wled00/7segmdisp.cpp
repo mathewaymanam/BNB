@@ -241,6 +241,140 @@ void SevenSegmentDisplay::setShowZero(boolean showZero) {
     _showZero = showZero;
 }
 
+OneDisplay::OneDisplay(LedBasedDisplayOutput output, uint8_t ledsPerSegment):
+    _output(output),
+    _ledsPerSegment(ledsPerSegment),
+    _value(_7SEG_SYM_EMPTY),
+    _mode(LedBasedDisplayMode::SET_ALL_LEDS) {
+
+    _offColors = (CRGB*) malloc(2 * _ledsPerSegment * sizeof(CRGB));
+    _onColors = (CRGB*) malloc(2 * _ledsPerSegment * sizeof(CRGB));
+    _indices = (uint8_t*) malloc(2 * _ledsPerSegment * sizeof(uint8_t));
+}
+
+OneDisplay::~OneDisplay() {
+    delete _indices;
+    delete _offColors;
+    delete _onColors;
+}
+
+uint8_t OneDisplay::rowCount() {
+    return _ledsPerSegment * 2 + 3;
+}
+
+uint8_t OneDisplay::columnCount() {
+    return 1;
+}
+
+uint8_t OneDisplay::internalIndex(uint8_t row, uint8_t column) {
+    uint8_t lastRow = (_ledsPerSegment + 1) * 2;
+
+    if (row < 0 || row > lastRow) {
+        return _7SEG_INDEX_UNDEF;
+    }
+
+    uint8_t midRow = _ledsPerSegment + 1;
+
+    bool top = row == 0;
+    bool mid = row == midRow;
+    bool bot = row == lastRow;
+
+    if (!top && !mid && !bot && column == 0) {
+        if (row < midRow) {
+            return _7SEG_IDX(_7SEG_SEG_B - 1, // -1 cause we only have two segments and the first one has index 1
+                    row - 1);
+        } else {
+            return _7SEG_IDX(_7SEG_SEG_C - 1, // -1 cause we only have two segments and the first one has index 1
+                    row - midRow - 1);
+        }
+    }
+
+    return _7SEG_INDEX_UNDEF;
+}
+
+uint8_t OneDisplay::indexOfCoords(uint8_t row, uint8_t column) {
+    uint8_t idx = internalIndex(row, column);
+    return idx == _7SEG_INDEX_UNDEF ? idx : _indices[idx];
+}
+
+Coords OneDisplay::coordsOfIndex(uint16_t index) {
+    Coords coords;
+    for (int i = 0, n = 2 * _ledsPerSegment; i < n; ++i) {
+        if (_indices[i] == index) {
+            uint8_t seg = i / _ledsPerSegment;
+            uint8_t idx = i % _ledsPerSegment;
+            switch (seg + 1) { // +1 cause we only have two segments and the first one has index 1
+            case _7SEG_SEG_B: coords.row = idx + 1; break;
+            case _7SEG_SEG_C: coords.row = _ledsPerSegment + 1 + idx + 1; break;
+            }
+            coords.col = 0; break;
+            return coords;
+        }
+    }
+    return coords;
+}
+
+CRGB* OneDisplay::getLedColor(uint8_t row, uint8_t column, bool state) {
+    uint8_t idx = internalIndex(row, column);
+
+    if (idx == _7SEG_INDEX_UNDEF) {
+        return &dummy;
+    }
+
+    return &(state ? _onColors : _offColors)[idx];
+}
+
+void OneDisplay::setLedColor(uint8_t row, uint8_t column, bool state, CRGB color) {
+    uint8_t idx = internalIndex(row, column);
+
+    if (idx == _7SEG_INDEX_UNDEF) {
+        return;
+    }
+
+    (state ? _onColors : _offColors)[idx] = color;
+}
+
+void OneDisplay::update() {
+    uint8_t mask = 0b00000001;
+
+    for (uint8_t seg = _7SEG_SEG_B; seg <= _7SEG_SEG_C; ++seg) {
+        bool on = _value & mask;
+
+        if (_7SEG_MODE(_mode, on)) {
+            for (uint8_t i = 0; i < _ledsPerSegment; ++i) {
+                uint8_t segmIdx = _7SEG_IDX(seg - 1, i); // -1 cause we only have two segments and the first one has index 1
+                CRGB c = (on ? _onColors : _offColors)[segmIdx];
+                (*_output)(_indices[segmIdx], c.red, c.green, c.blue);
+            }
+        }
+
+        mask <<= 1;
+    }
+}
+
+void OneDisplay::setMode(LedBasedDisplayMode mode) {
+    _mode = mode;
+}
+
+void OneDisplay::mapSegment(uint8_t seg, ...) {
+    if (seg != _7SEG_SEG_B && seg != _7SEG_SEG_C) {
+        return;
+    }
+
+    va_list ap;
+    va_start(ap, seg);
+
+    for (uint8_t i = 0; i < _ledsPerSegment; i++) {
+        _indices[_7SEG_IDX(seg - 1, i)] = va_arg(ap, int); // -1 cause we only have two segments and the first one has index 1
+    }
+
+    va_end(ap);
+}
+
+void OneDisplay::setOn(boolean on) {
+    _value = on ? 0b00000011 : 0b00000000;
+}
+
 SeparatorDisplay::SeparatorDisplay(LedBasedDisplayOutput output):
     _output(output),
     _ledCount(0),

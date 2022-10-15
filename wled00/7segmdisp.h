@@ -77,9 +77,9 @@
 #define _7SEG_SYM_DASH        0b01000000
 #define _7SEG_SYM_UNDERSCORE  0b00001000
 
-#define _7SEG_IDX(seg, i) (seg * _ledsPerSegment + i)
+#define _7SEG_IDX(seg, i) ((seg) * _ledsPerSegment + i)
 
-#define _7SEG_MODE(mode, state) (mode == LedBasedDisplayMode::SET_ALL_LEDS || (state && mode == LedBasedDisplayMode::SET_ON_LEDS) || (!state && mode == LedBasedDisplayMode::SET_OFF_LEDS))
+#define _7SEG_MODE(mode, state) ((mode) == LedBasedDisplayMode::SET_ALL_LEDS || ((state) && (mode) == LedBasedDisplayMode::SET_ON_LEDS) || (!(state) && (mode) == LedBasedDisplayMode::SET_OFF_LEDS))
 
 #define _7SEG_INDEX_UNDEF 255
 #define _7SEG_COORD_UNDEF 255
@@ -163,6 +163,43 @@ class SevenSegmentDisplay : public LedBasedDisplay {
         uint8_t* _indices;
 
         boolean _showZero;
+
+        LedBasedDisplayMode _mode;
+
+        uint8_t internalIndex(uint8_t row, uint8_t column);
+};
+
+class OneDisplay : public LedBasedDisplay {
+
+    public:
+        OneDisplay(LedBasedDisplayOutput output, uint8_t ledsPerSegment);
+
+        virtual ~OneDisplay() override;
+
+        virtual uint8_t rowCount() override;
+        virtual uint8_t columnCount() override;
+
+        virtual uint8_t indexOfCoords(uint8_t row, uint8_t column) override;
+        virtual Coords coordsOfIndex(uint16_t index) override;
+
+        virtual CRGB* getLedColor(uint8_t row, uint8_t column, bool state) override;
+        virtual void setLedColor(uint8_t row, uint8_t column, bool state, CRGB color) override;
+
+        virtual void update() override;
+
+        virtual void setMode(LedBasedDisplayMode mode) override;
+
+        void mapSegment(uint8_t seg, ...);
+        void setOn(bool on);
+
+    private:
+        LedBasedDisplayOutput _output;
+        CRGB* _offColors;
+        CRGB* _onColors;
+
+        uint8_t _ledsPerSegment;
+        uint8_t _value;
+        uint8_t* _indices;
 
         LedBasedDisplayMode _mode;
 

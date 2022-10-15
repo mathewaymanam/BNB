@@ -261,10 +261,8 @@ private:
         NoOp = 99
     };
 
-    SevenSegmentDisplay dHoursT;
+    OneDisplay dHoursT;
     SevenSegmentDisplay dHoursO;
-
-    SeparatorDisplay sep;
 
     SevenSegmentDisplay dMinutesT;
     SevenSegmentDisplay dMinutesO;
@@ -307,10 +305,9 @@ public:
     UsermodLedClock():
         dHoursT(&outputPixel, 2),
         dHoursO(&outputPixel, 2),
-        sep(&outputPixel),
         dMinutesT(&outputPixel, 2),
         dMinutesO(&outputPixel, 2),
-        display(5, &dHoursT, &dHoursO, &sep, &dMinutesT, &dMinutesO),
+        display(4, &dHoursT, &dHoursO, &dMinutesT, &dMinutesO),
         beeper(0, BUZZER_PIN),
         selfTestTimer(10),
         stopwatchTimer(0),
@@ -322,14 +319,8 @@ public:
 
     void setup() {
         // digit 1
-        dHoursT.setShowZero(!hideZero);
-        dHoursT.mapSegment(_7SEG_SEG_A, 6, 7);
         dHoursT.mapSegment(_7SEG_SEG_B, 8, 9);
         dHoursT.mapSegment(_7SEG_SEG_C, 12, 13);
-        dHoursT.mapSegment(_7SEG_SEG_D, 1, 0);
-        dHoursT.mapSegment(_7SEG_SEG_E, 3, 2);
-        dHoursT.mapSegment(_7SEG_SEG_F, 5, 4);
-        dHoursT.mapSegment(_7SEG_SEG_G, 11, 10);
 
         // digit 2
         dHoursO.mapSegment(_7SEG_SEG_A, 20, 21);
@@ -339,10 +330,6 @@ public:
         dHoursO.mapSegment(_7SEG_SEG_E, 17, 16);
         dHoursO.mapSegment(_7SEG_SEG_F, 19, 18);
         dHoursO.mapSegment(_7SEG_SEG_G, 25, 24);
-
-        sep.map(2,
-            2, 0, 29,
-            4, 0, 28);
 
         // digit 3
         dMinutesT.mapSegment(_7SEG_SEG_A, 36, 37);
@@ -378,7 +365,7 @@ public:
     }
 
     void clearDisplay() {
-        dHoursT.setSymbol(_7SEG_SYM_EMPTY);
+        dHoursT.setOn(false);
         dHoursO.setSymbol(_7SEG_SYM_EMPTY);
         dMinutesT.setSymbol(_7SEG_SYM_EMPTY);
         dMinutesO.setSymbol(_7SEG_SYM_EMPTY);
@@ -388,21 +375,21 @@ public:
         if (millis < 60000) {
             unsigned long seconds = millis / 1000;
             unsigned long hundredths = (millis % 1000) / 10;
-            dHoursT.setDigit(seconds / 10);
+            dHoursT.setOn(seconds / 10);
             dHoursO.setDigit(seconds % 10);
             dMinutesT.setDigit(hundredths / 10);
             dMinutesO.setDigit(hundredths % 10);
         } else if (millis < 3600000) {
             unsigned long minutes = millis / 60000;
             unsigned long seconds = (millis % 60000) / 1000;
-            dHoursT.setDigit(minutes / 10);
+            dHoursT.setOn(minutes / 10);
             dHoursO.setDigit(minutes % 10);
             dMinutesT.setDigit(seconds / 10);
             dMinutesO.setDigit(seconds % 10);
         } else {
             unsigned long hours = millis / 3600000;
             unsigned long minutes = (millis % 3600000) / 60000;
-            dHoursT.setDigit(hours / 10);
+            dHoursT.setOn(hours / 10);
             dHoursO.setDigit(hours % 10);
             dMinutesT.setDigit(minutes / 10);
             dMinutesO.setDigit(minutes % 10);
@@ -429,15 +416,8 @@ public:
                         if (hr == 0) hr  = 12;
                     }
 
-                    dHoursT.setDigit(hr / 10);
+                    dHoursT.setOn(hr / 10);
                     dHoursO.setDigit(hr % 10);
-
-                    switch (separatorMode) {
-                    case SeparatorMode::ON: sep.setState(true); break;
-                    case SeparatorMode::OFF: sep.setState(false); break;
-                    case SeparatorMode::BLINK: sep.setState(second(p) % 2); break;
-                    }
-
                     dMinutesT.setDigit(minute(p) / 10);
                     dMinutesO.setDigit(minute(p) % 10);
                 }
@@ -481,11 +461,8 @@ public:
                     } else {
                         clearDisplay();
                     }
-
-                    sep.setState(on);
                 } else {
                     displayMillis(timerLeft);
-                    sep.setState(true);
                 }
                 break;
             case Mode::StopwatchMode:
@@ -510,11 +487,8 @@ public:
                     } else {
                         clearDisplay();
                     }
-
-                    sep.setState(on);
                 } else {
                     displayMillis(stopwatchElapsed);
-                    sep.setState(true);
                 }
                 break;
             default:
@@ -812,9 +786,7 @@ public:
         return configComplete;
     }
 
-    void applySettings() {
-        dHoursT.setShowZero(!hideZero);
-    }
+    void applySettings() {}
 
     void handleOverlayDraw() {
         if (selfTestDone) {
